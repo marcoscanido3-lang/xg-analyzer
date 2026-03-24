@@ -9,8 +9,8 @@ const API_KEY = process.env.API_FOOTBALL_KEY;
 const BASE_URL = 'https://v3.football.api-sports.io';
 
 const headers = {
-  'x-rapidapi-host': 'v3.football.api-sports.io',
-  'x-rapidapi-key': API_KEY
+  'x-apisports-host': 'v3.football.api-sports.io',
+  'x-apisports-key': API_KEY
 };
 
 // ============================================================
