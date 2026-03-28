@@ -206,20 +206,51 @@ canvas{display:block;border-radius:10px;border:1px solid var(--border);width:100
 
 
   <!-- INGRESO PARTIDOS LIGA -->
-  <div class="card">
-    <div class="ct">Últimos partidos en Liga &#8212; ingresá resultados para calcular XG automáticamente</div>
-    <div class="g2">
-      <div>
-        <div style="font-size:.65rem;color:var(--green);font-weight:600;margin-bottom:6px" id="liga-sub-A">Local &#8212; últimos partidos en casa</div>
-        <div class="match-header"><span>Rival</span><span>GF</span><span>GC</span></div>
-        <div id="ligaA-rows"></div>
-        <div class="avg-row">
-          <span>Promedio</span>
-          <span class="gv" id="ligaA-avgGF">&#8212;</span>
-          <span class="rv" id="ligaA-avgGC">&#8212;</span>
-        </div>
-        <button class="apply-btn" onclick="applyLigaAvg('A')">&#8593; Aplicar a XG Liga a favor / en contra</button>
+<!-- BÚSQUEDA SOFASCORE CON XG REAL -->
+<div class="card">
+  <div class="ct">Búsqueda automática — SofaScore · xG real por partido</div>
+  <div class="g2">
+    <div>
+      <div style="font-size:.72rem;color:var(--green);font-weight:600;margin-bottom:6px">Local — últimos 10 en casa</div>
+      <div style="position:relative;margin-bottom:6px">
+        <input type="text" id="searchA" placeholder="Buscar equipo local..." oninput="buscarEquipo('A')" autocomplete="off">
+        <span id="loadA" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:.65rem;color:var(--muted);display:none">buscando...</span>
       </div>
+      <div id="acA" style="background:var(--surf2);border:1px solid var(--border);border-radius:8px;display:none;max-height:160px;overflow-y:auto;margin-bottom:6px;position:relative;z-index:10"></div>
+      <div id="resA" style="font-size:.68rem;color:var(--muted);min-height:16px;margin-bottom:4px"></div>
+      <div id="tablaA"></div>
+      <div id="promedioA" style="display:none;margin-top:8px">
+        <div style="display:flex;gap:6px">
+          <div class="metric" style="flex:1"><div class="ml">xG a favor</div><div class="mv gv" id="xgAfav">—</div></div>
+          <div class="metric" style="flex:1"><div class="ml">xG en contra</div><div class="mv rv" id="xgAcon">—</div></div>
+        </div>
+        <button class="btn btn-g" style="margin-top:6px;font-size:.75rem" onclick="aplicarA()">↑ Aplicar a XG Liga local</button>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:.72rem;color:var(--red);font-weight:600;margin-bottom:6px">Visitante — últimos 10 de visita</div>
+      <div style="position:relative;margin-bottom:6px">
+        <input type="text" id="searchB" placeholder="Buscar equipo visitante..." oninput="buscarEquipo('B')" autocomplete="off">
+        <span id="loadB" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:.65rem;color:var(--muted);display:none">buscando...</span>
+      </div>
+      <div id="acB" style="background:var(--surf2);border:1px solid var(--border);border-radius:8px;display:none;max-height:160px;overflow-y:auto;margin-bottom:6px;position:relative;z-index:10"></div>
+      <div id="resB" style="font-size:.68rem;color:var(--muted);min-height:16px;margin-bottom:4px"></div>
+      <div id="tablaB"></div>
+      <div id="promedioB" style="display:none;margin-top:8px">
+        <div style="display:flex;gap:6px">
+          <div class="metric" style="flex:1"><div class="ml">xG a favor</div><div class="mv gv" id="xgBfav">—</div></div>
+          <div class="metric" style="flex:1"><div class="ml">xG en contra</div><div class="mv rv" id="xgBcon">—</div></div>
+        </div>
+        <button class="btn btn-g" style="margin-top:6px;font-size:.75rem" onclick="aplicarB()">↑ Aplicar a XG Liga visitante</button>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+---
+
+  
       <div>
         <div style="font-size:.65rem;color:var(--red);font-weight:600;margin-bottom:6px" id="liga-sub-B">Visitante &#8212; últimos partidos de visita</div>
         <div class="match-header"><span>Rival</span><span>GF</span><span>GC</span></div>
@@ -1327,10 +1358,171 @@ function syncMatchLabels() {
   });
 }
 
-// ── INIT ──
+
+  // ── SOFASCORE XG REAL ─────────────────────────────────────
+const PROXY = 'https://corsproxy.io/?'
+const SOFA  = 'https://www.sofascore.com/api/v1'
+const HDRS  = {'x-requested-with':'XMLHttpRequest'}
+let timerA, timerB
+
+async function sofaFetch(path) {
+  const url = PROXY + encodeURIComponent(SOFA + path)
+  const r = await fetch(url, {headers: HDRS})
+  if (!r.ok) throw new Error('HTTP ' + r.status)
+  return r.json()
+}
+
+function buscarEquipo(side) {
+  const q = document.getElementById('search'+side).value.trim()
+  const ac = document.getElementById('ac'+side)
+  clearTimeout(side==='A' ? timerA : timerB)
+  if (q.length < 2) { ac.style.display='none'; return }
+  const t = setTimeout(async () => {
+    document.getElementById('load'+side).style.display = 'inline'
+    try {
+      const d = await sofaFetch(`/search/all?q=${encodeURIComponent(q)}&page=0`)
+      const teams = (d.results||[]).filter(x=>x.type==='team').slice(0,6)
+      if (!teams.length) { ac.style.display='none'; return }
+      ac.innerHTML = teams.map(t => `
+        <div onclick="seleccionarEquipo('${side}',${t.entity.id},'${(t.entity.name||'').replace(/'/g,"\\'")}','${t.entity.country?.name||''}')"
+          style="padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--border);font-size:.78rem"
+          onmouseover="this.style.background='var(--surf)'"
+          onmouseout="this.style.background=''">
+          <span style="color:var(--text)">${t.entity.name}</span>
+          <span style="color:var(--muted);font-size:.68rem;margin-left:6px">${t.entity.country?.name||''} · ${t.entity.tournament?.name||''}</span>
+        </div>`).join('')
+      ac.style.display = 'block'
+    } catch(e) {
+      document.getElementById('res'+side).textContent = 'Error al buscar. Reintentá.'
+    }
+    document.getElementById('load'+side).style.display = 'none'
+  }, 420)
+  if (side==='A') timerA=t; else timerB=t
+}
+
+async function seleccionarEquipo(side, id, name, country) {
+  document.getElementById('search'+side).value = name
+  document.getElementById('ac'+side).style.display = 'none'
+  document.getElementById('res'+side).textContent = '⏳ Cargando partidos...'
+  document.getElementById('tabla'+side).innerHTML = ''
+  document.getElementById('promedio'+side).style.display = 'none'
+  if (side==='A') { document.getElementById('nA').value=name; syncNames() }
+  else            { document.getElementById('nB').value=name; syncNames() }
+  try {
+    let partidos = []
+    for (let p=0; p<3 && partidos.length<10; p++) {
+      const d = await sofaFetch(`/team/${id}/events/last/${p}`)
+      if (!d.events?.length) break
+      const filtrados = d.events.filter(ev =>
+        side==='A' ? ev.homeTeam.id===id : ev.awayTeam.id===id
+      )
+      partidos = partidos.concat(filtrados)
+    }
+    partidos = partidos.slice(0,10)
+    if (!partidos.length) {
+      document.getElementById('res'+side).textContent = 'Sin partidos encontrados.'
+      return
+    }
+    document.getElementById('res'+side).textContent = `⏳ Cargando xG de ${partidos.length} partidos...`
+    const xgData = await Promise.all(partidos.map(async ev => {
+      try {
+        const sm = await sofaFetch(`/event/${ev.id}/shotmap`)
+        const shots = sm.shotmap || []
+        const esHome = ev.homeTeam.id === id
+        let xgF = 0, xgC = 0
+        shots.forEach(s => {
+          const xg = s.xg || 0
+          if (esHome ? s.isHome : !s.isHome) xgF += xg
+          else xgC += xg
+        })
+        return { xgF, xgC, ok: true }
+      } catch(e) {
+        const esHome = ev.homeTeam.id === id
+        return {
+          xgF: esHome ? ev.homeScore.current : ev.awayScore.current,
+          xgC: esHome ? ev.awayScore.current : ev.homeScore.current,
+          ok: false
+        }
+      }
+    }))
+    renderTablaXG(side, id, partidos, xgData)
+  } catch(e) {
+    document.getElementById('res'+side).textContent = 'Error al cargar. Reintentá.'
+    console.error(e)
+  }
+}
+
+function renderTablaXG(side, teamId, partidos, xgData) {
+  let sumF=0, sumC=0, html=''
+  html += `<table style="width:100%;border-collapse:collapse;font-size:.72rem;margin-top:4px">
+    <thead><tr>
+      <th style="text-align:left;padding:4px 6px;color:var(--muted);font-size:.6rem;border-bottom:1px solid var(--border)">Rival</th>
+      <th style="padding:4px 6px;color:var(--green);font-size:.6rem;border-bottom:1px solid var(--border)">xGF</th>
+      <th style="padding:4px 6px;color:var(--red);font-size:.6rem;border-bottom:1px solid var(--border)">xGC</th>
+      <th style="padding:4px 6px;color:var(--muted);font-size:.6rem;border-bottom:1px solid var(--border)">Res</th>
+    </tr></thead><tbody>`
+  partidos.forEach((ev, i) => {
+    const esHome = ev.homeTeam.id === teamId
+    const rival  = esHome ? ev.awayTeam.name : ev.homeTeam.name
+    const gf     = esHome ? ev.homeScore.current : ev.awayScore.current
+    const gc     = esHome ? ev.awayScore.current : ev.homeScore.current
+    const xgF    = xgData[i].xgF
+    const xgC    = xgData[i].xgC
+    const fallback = !xgData[i].ok
+    sumF += xgF; sumC += xgC
+    const res = gf>gc?'V':gf===gc?'E':'D'
+    const col = res==='V'?'var(--green)':res==='E'?'var(--amber)':'var(--red)'
+    const rivalCorto = rival.length>13 ? rival.slice(0,12)+'…' : rival
+    html += `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:4px 6px;color:var(--text2)">${rivalCorto}</td>
+      <td style="padding:4px 6px;text-align:center;font-family:'Space Mono',monospace;color:var(--green)">${fallback?'≈':xgF.toFixed(2)}</td>
+      <td style="padding:4px 6px;text-align:center;font-family:'Space Mono',monospace;color:var(--red)">${fallback?'≈':xgC.toFixed(2)}</td>
+      <td style="padding:4px 6px;text-align:center;font-weight:700;color:${col}">${res} ${gf}-${gc}</td>
+    </tr>`
+  })
+  html += '</tbody></table>'
+  document.getElementById('tabla'+side).innerHTML = html
+  const n = partidos.length
+  const avgF = (sumF/n).toFixed(2)
+  const avgC = (sumC/n).toFixed(2)
+  document.getElementById('xg'+side+'fav').textContent = avgF
+  document.getElementById('xg'+side+'con').textContent = avgC
+  document.getElementById('promedio'+side).style.display = 'block'
+  document.getElementById('res'+side).textContent = `✓ ${n} partidos · xG real SofaScore`
+}
+
+function aplicarA() {
+  const f = document.getElementById('xgAfav').textContent
+  const c = document.getElementById('xgAcon').textContent
+  if (f!=='—') { document.getElementById('xgLA').value=f; document.getElementById('xgLAc').value=c; calcular() }
+}
+function aplicarB() {
+  const f = document.getElementById('xgBfav').textContent
+  const c = document.getElementById('xgBcon').textContent
+  if (f!=='—') { document.getElementById('xgLB').value=f; document.getElementById('xgLBc').value=c; calcular() }
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#acA') && !e.target.closest('#searchA')) document.getElementById('acA').style.display='none'
+  if (!e.target.closest('#acB') && !e.target.closest('#searchB')) document.getElementById('acB').style.display='none'
+})
+// ── FIN SOFASCORE XG ──────────────────────────────────────
+```
+
+---
+
+Después de pegar, el código debería verse así:
+```
+// ── SOFASCORE XG REAL ───
+const PROXY = ...
+...
+// ── FIN SOFASCORE XG ────
+
+// — INIT —
 loadDB();
 syncNames();
 calcular();
+
 window.addEventListener('load',()=>{
   initMatchRows();
   syncMatchLabels();
