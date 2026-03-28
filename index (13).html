@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XG Analyzer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+:root{--bg:#0a0b0d;--surf:#111318;--surf2:#181b22;--border:#1e2229;--green:#c8f135;--gd:#0f1f08;--gdb:#1e3a0a;--red:#ff4444;--rdb:#1e0606;--blue:#5b9cf6;--bdb:#0a1525;--amber:#f5a623;--adb:#1a0f00;--muted:#6b7280;--text:#e8eaed;--text2:#9ca3af}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;padding:.75rem}
+.app{max-width:960px;margin:0 auto}
+header{text-align:center;padding:1.5rem 0 1rem;border-bottom:1px solid var(--border);margin-bottom:1rem}
+header h1{font-family:'Space Mono',monospace;font-size:clamp(1.2rem,4vw,1.9rem);color:var(--green);letter-spacing:-1px;margin-bottom:.2rem}
+header p{color:var(--muted);font-size:.78rem}
+.tabs{display:flex;gap:3px;background:var(--surf);border-radius:10px;padding:3px;margin-bottom:1rem;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:1;min-width:70px;padding:7px 8px;border-radius:7px;border:none;background:transparent;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:.7rem;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap;text-align:center}
+.tab.active{background:var(--surf2);color:var(--green);border:1px solid var(--gdb)}
+.panel{display:none}.panel.active{display:block}
+.card{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:.75rem}
+.ct{font-size:.63rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem}
+@media(max-width:600px){.g2{grid-template-columns:1fr}.g3{grid-template-columns:1fr 1fr}.g4{grid-template-columns:1fr 1fr}}
+.field{margin-bottom:.55rem}
+.field label{display:block;font-size:.68rem;color:var(--muted);margin-bottom:3px;font-weight:500}
+input,select{width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:.83rem;outline:none;transition:border-color .2s}
+input:focus,select:focus{border-color:var(--gdb)}
+input.gi{border-color:var(--gdb);background:var(--gd);color:var(--green);font-weight:600}
+.btn{width:100%;padding:10px;border-radius:10px;border:none;font-family:'Space Grotesk',sans-serif;font-size:.83rem;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-g{background:var(--green);color:#0a0b0d}.btn-g:hover{background:#d4f545;transform:translateY(-1px)}
+.btn-o{background:transparent;border:1px solid var(--border);color:var(--text2)}.btn-o:hover{border-color:var(--gdb);color:var(--green)}
+.metric{background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:9px;text-align:center}
+.ml{font-size:.6rem;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px}
+.mv{font-size:1.45rem;font-weight:700;font-family:'Space Mono',monospace}
+.msub{font-size:.65rem;color:var(--muted);margin-top:2px}
+.pb{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:5px}
+.pf{height:100%;border-radius:2px;transition:width .5s}
+.gv{color:var(--green)}.rv{color:var(--red)}.av{color:var(--amber)}.bv{color:var(--blue)}.muv{color:var(--muted)}
+.tbl{width:100%;border-collapse:collapse;font-size:.76rem}
+.tbl th{padding:6px 8px;text-align:left;font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);font-weight:600}
+.tbl td{padding:6px 8px;border-bottom:1px solid #0d1014;font-family:'Space Mono',monospace;font-size:.73rem}
+.tbl tr:last-child td{border-bottom:none}
+.mx-wrap{overflow-x:auto}
+.mx{border-collapse:collapse;font-size:.7rem;width:100%}
+.mx th,.mx td{padding:5px 4px;text-align:center;border:1px solid var(--border);min-width:44px;font-family:'Space Mono',monospace}
+.mx th{background:var(--surf2);color:var(--muted);font-size:.6rem}
+.wina{background:#061806;color:var(--green)}.draw{background:#1a1600;color:var(--amber)}.winb{background:var(--rdb);color:var(--red)}
+.nr{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border)}
+.nr:last-child{border-bottom:none}
+.nl{font-size:.62rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;min-width:72px;padding-top:2px}
+.nt{font-size:.82rem;color:var(--text);line-height:1.5}
+.dis{border-radius:10px;padding:10px 12px;margin-bottom:6px;font-size:.79rem;line-height:1.5}
+.dw{background:#1a1000;border:1px solid #3a2800;color:var(--amber)}
+.do{background:var(--gd);border:1px solid var(--gdb);color:var(--green)}
+.di{background:var(--bdb);border:1px solid #0a2040;color:var(--blue)}
+.mr{display:flex;align-items:center;gap:5px;padding:7px 0;border-bottom:1px solid var(--border);font-size:.76rem}
+.mr:last-child{border-bottom:none}
+.mn{flex:1;color:var(--text2)}
+.mm{font-family:'Space Mono',monospace;font-size:.7rem;min-width:46px;text-align:right}
+.mdi{font-family:'Space Mono',monospace;font-size:.68rem;min-width:52px;text-align:right}
+.ms2{font-size:.64rem;min-width:118px;text-align:right;padding:2px 5px;border-radius:4px}
+.sg{background:var(--gd);color:var(--green);border:1px solid var(--gdb)}
+.sr2{background:var(--rdb);color:var(--red);border:1px solid #3a0a0a}
+.sa{background:var(--adb);color:var(--amber);border:1px solid #3a2000}
+.sm{background:var(--surf2);color:var(--muted);border:1px solid var(--border)}
+.sr3{display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border)}
+.sr3:last-child{border-bottom:none}
+canvas{display:block;border-radius:10px;border:1px solid var(--border);width:100%;max-width:100%}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+<h1>⚽ XG Analyzer</h1>
+<p>Poisson · Regresión a la media · Disonancia · Momentum Dixon-Coles</p>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('datos',this)">Datos</button>
+  <button class="tab" onclick="showTab('analisis',this)">Análisis</button>
+  <button class="tab" onclick="showTab('mercados',this)">Mercados</button>
+  <button class="tab" onclick="showTab('handicap',this)">Handicap</button>
+  <button class="tab" onclick="showTab('narrativa',this)">Narrativa</button>
+  <button class="tab" onclick="showTab('verificacion',this)">Verificación</button>
+  <button class="tab" onclick="showTab('simulacion',this)">Simulación</button>
+</div>
+
+<!-- DATOS -->
+<div id="tab-datos" class="panel active">
+  <div class="card">
+    <div class="ct">Equipos</div>
+    <div class="g2">
+      <div>
+        <!-- FIX #2: oninput llama syncNames que ya está definida en el script -->
+        <div class="field"><label>Equipo Local</label><input type="text" id="nA" value="Liverpool" class="gi" oninput="syncNames()"></div>
+        <div class="field"><label>XG Liga a favor</label><input type="number" id="xgLA" value="1.66" step="0.01" min="0" oninput="calcular()"></div>
+        <div class="field"><label>XG Liga en contra</label><input type="number" id="xgLAc" value="1.13" step="0.01" min="0" oninput="calcular()"></div>
+      </div>
+      <div>
+        <div class="field"><label>Equipo Visitante</label><input type="text" id="nB" value="Real Madrid" class="gi" oninput="syncNames()"></div>
+        <div class="field"><label>XG Liga a favor</label><input type="number" id="xgLB" value="2.29" step="0.01" min="0" oninput="calcular()"></div>
+        <div class="field"><label>XG Liga en contra</label><input type="number" id="xgLBc" value="0.75" step="0.01" min="0" oninput="calcular()"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">Búsqueda automática — FBref · XG real · Últimos 10 partidos</div>
+
+    <!-- SELECTOR DE LIGA -->
+    <div class="field" style="margin-bottom:.75rem">
+      <label style="font-size:.68rem;color:var(--muted);font-weight:600">Liga</label>
+      <select id="ligaSelect" onchange="calcular()">
+        <option value="9">Premier League</option>
+        <option value="12">La Liga</option>
+        <option value="20">Bundesliga</option>
+        <option value="11">Serie A</option>
+        <option value="13">Ligue 1</option>
+        <option value="8">Champions League</option>
+        <option value="19">Europa League</option>
+        <option value="23">Eredivisie</option>
+        <option value="32">Primeira Liga</option>
+        <option value="22">MLS</option>
+      </select>
+    </div>
+
+    <!-- LOCAL -->
+    <div style="margin-bottom:.75rem">
+      <label style="display:block;font-size:.68rem;color:var(--green);margin-bottom:4px;font-weight:600">🏠 Local — buscar por nombre</label>
+      <div style="position:relative">
+        <input type="text" id="buscarLocal" placeholder="Ej: Liverpool, Real Madrid..." autocomplete="off"
+          oninput="buscarEquipo('local',this.value)" style="padding-right:36px">
+        <span id="spLocal" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.75rem;display:none">⏳</span>
+      </div>
+      <div id="sugLocal" style="background:var(--surf2);border:1px solid var(--border);border-radius:8px;margin-top:3px;display:none;max-height:160px;overflow-y:auto;z-index:99;position:relative"></div>
+      <div id="infoLocal" style="font-size:.7rem;color:var(--muted);margin-top:4px;min-height:16px"></div>
+    </div>
+
+    <!-- VISITANTE -->
+    <div>
+      <label style="display:block;font-size:.68rem;color:var(--red);margin-bottom:4px;font-weight:600">✈️ Visitante — buscar por nombre</label>
+      <div style="position:relative">
+        <input type="text" id="buscarVisitante" placeholder="Ej: Barcelona, PSG..." autocomplete="off"
+          oninput="buscarEquipo('visitante',this.value)" style="padding-right:36px">
+        <span id="spVisitante" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.75rem;display:none">⏳</span>
+      </div>
+      <div id="sugVisitante" style="background:var(--surf2);border:1px solid var(--border);border-radius:8px;margin-top:3px;display:none;max-height:160px;overflow-y:auto;z-index:99;position:relative"></div>
+      <div id="infoVisitante" style="font-size:.7rem;color:var(--muted);margin-top:4px;min-height:16px"></div>
+    </div>
+
+    <!-- TABLA PARTIDOS -->
+    <div id="tablaPartidos" style="display:none;margin-top:.75rem">
+      <div style="font-size:.63rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">Partidos usados para el cálculo</div>
+      <div class="g2" style="gap:.5rem">
+        <div>
+          <div style="font-size:.65rem;color:var(--green);margin-bottom:4px;font-weight:600" id="lblTabLocal">Local</div>
+          <div id="tblLocal" style="font-size:.7rem"></div>
+        </div>
+        <div>
+          <div style="font-size:.65rem;color:var(--red);margin-bottom:4px;font-weight:600" id="lblTabVisit">Visitante</div>
+          <div id="tblVisitante" style="font-size:.7rem"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">Contexto histórico (UCL / competición específica)</div>
+    <div class="g4">
+      <div class="field"><label id="la1">Ataque Local ctx</label><input type="number" id="ctxAa" value="2.13" step="0.01" min="0" oninput="calcular()"></div>
+      <div class="field"><label id="la2">Defensa Local ctx</label><input type="number" id="ctxAd" value="1.25" step="0.01" min="0" oninput="calcular()"></div>
+      <div class="field"><label id="lb1">Ataque Visit ctx</label><input type="number" id="ctxBa" value="1.19" step="0.01" min="0" oninput="calcular()"></div>
+      <div class="field"><label id="lb2">Defensa Visit ctx</label><input type="number" id="ctxBd" value="1.75" step="0.01" min="0" oninput="calcular()"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">Cuotas de la casa</div>
+    <div class="g3">
+      <div class="field"><label id="lca">Gana Local</label><input type="number" id="cA" value="1.70" step="0.01" min="1.01" oninput="calcular()"></div>
+      <div class="field"><label>Empate</label><input type="number" id="cX" value="3.80" step="0.01" min="1.01" oninput="calcular()"></div>
+      <div class="field"><label id="lcb">Gana Visitante</label><input type="number" id="cB" value="5.50" step="0.01" min="1.01" oninput="calcular()"></div>
+      <div class="field"><label>Arriba 1.5</label><input type="number" id="cA15" value="1.20" step="0.01" min="1.01" oninput="calcular()"></div>
+      <div class="field"><label>Debajo 1.5</label><input type="number" id="cD15" value="5.50" step="0.01" min="1.01" oninput="calcular()"></div>
+      <div class="field"><label>Arriba 2.5</label><input type="number" id="cA25" value="1.85" step="0.01" min="1.01" oninput="calcular()"></div>
+      <div class="field"><label>Debajo 2.5</label><input type="number" id="cD25" value="1.95" step="0.01" min="1.01" oninput="calcular()"></div>
+      <div class="field"><label>Arriba 3.5</label><input type="number" id="cA35" value="2.90" step="0.01" min="1.01" oninput="calcular()"></div>
+      <div class="field"><label>Debajo 3.5</label><input type="number" id="cD35" value="1.40" step="0.01" min="1.01" oninput="calcular()"></div>
+      <div class="field"><label>Ambos marcan</label><input type="number" id="cAmb" value="1.80" step="0.01" min="1.01" oninput="calcular()"></div>
+      <div class="field"><label id="lhc1">HC -0.5 Local</label><input type="number" id="cHc1" value="1.65" step="0.01" min="1.01" oninput="calcular()"></div>
+      <div class="field"><label id="lhc2">HC +0.5 Visitante</label><input type="number" id="cHc2" value="2.20" step="0.01" min="1.01" oninput="calcular()"></div>
+    </div>
+  </div>
+
+  <button class="btn btn-g" onclick="calcular();showTab('analisis',document.querySelectorAll('.tab')[1])">Calcular →</button>
+</div>
+
+<!-- ANÁLISIS -->
+<div id="tab-analisis" class="panel">
+  <div class="g3" style="margin-bottom:.75rem" id="m1x2"></div>
+  <div class="g4" style="margin-bottom:.75rem" id="mgoles"></div>
+  <div class="card"><div class="ct">λ — Regresión a la media</div><div class="g2" id="mlambda"></div></div>
+  <div class="card">
+    <div class="ct">Tablero de marcadores</div>
+    <div class="mx-wrap" id="mmatrix"></div>
+    <div style="margin-top:8px;font-size:.66rem;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap">
+      <span style="color:var(--green)">■ Gana local</span><span style="color:var(--amber)">■ Empate</span><span style="color:var(--red)">■ Gana visitante</span>
+    </div>
+  </div>
+  <div class="card"><div class="ct">Distribución Poisson</div><div id="mpoisson"></div></div>
+</div>
+
+<!-- MERCADOS -->
+<div id="tab-mercados" class="panel">
+  <div class="card">
+    <div class="ct">Todos los mercados · modelo vs casa</div>
+    <div style="display:flex;gap:5px;font-size:.6rem;color:var(--muted);padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:4px">
+      <span style="flex:1">Mercado</span><span style="min-width:46px;text-align:right">Modelo</span><span style="min-width:46px;text-align:right">Casa</span><span style="min-width:52px;text-align:right">Diff</span><span style="min-width:118px;text-align:right">Estado</span>
+    </div>
+    <div id="mmkt"></div>
+  </div>
+  <div id="mconcl"></div>
+</div>
+
+<!-- HANDICAP -->
+<div id="tab-handicap" class="panel">
+  <div class="card">
+    <div class="ct">Handicap asiático y europeo</div>
+    <div style="display:flex;gap:5px;font-size:.6rem;color:var(--muted);padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:4px">
+      <span style="flex:1">Handicap</span><span style="min-width:52px;text-align:right">Modelo</span><span style="min-width:52px;text-align:right">Ref casa</span><span style="min-width:52px;text-align:right">Diff</span>
+    </div>
+    <div id="mhc"></div>
+  </div>
+  <div class="card" style="margin-top:.75rem">
+    <div class="ct">Goles exactos</div>
+    <div id="mgex"></div>
+  </div>
+</div>
+
+<!-- NARRATIVA -->
+<div id="tab-narrativa" class="panel">
+  <div class="card"><div class="ct">Cómo debería ser este partido — señal del modelo</div><div id="mnarr"></div></div>
+  <div class="card" style="margin-top:.75rem"><div class="ct">Favourite-Longshot Bias — distorsión de masa</div><div id="mflb"></div></div>
+  <div class="card" style="margin-top:.75rem"><div class="ct">Sesgo del modelo — lo que este sistema no puede ver</div><div id="mbias"></div></div>
+</div>
+
+<!-- VERIFICACIÓN -->
+<div id="tab-verificacion" class="panel">
+  <div class="card"><div class="ct">Silogismos lógicos — lo que no puede pasar</div><div id="msilo1"></div></div>
+  <div class="card" style="margin-top:.75rem"><div class="ct">Tensiones — qué está en contradicción y qué alternativas da</div><div id="msilo2"></div></div>
+  <div class="card" style="margin-top:.75rem"><div class="ct">Una sola señal — la tensión más fuerte cruzada con todo</div><div id="msenal"></div></div>
+</div>
+
+<!-- SIMULACIÓN -->
+<div id="tab-simulacion" class="panel">
+  <div class="card">
+    <div class="ct">Simulación · Momentum Dixon-Coles (±12% máx)</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span id="sNA" style="color:var(--green);font-weight:600;font-size:.88rem">Liverpool</span>
+      <span id="sSC" style="font-family:'Space Mono',monospace;font-size:1.5rem;font-weight:700">0 - 0</span>
+      <span id="sNB" style="color:var(--red);font-weight:600;font-size:.88rem">Real Madrid</span>
+    </div>
+    <div style="text-align:center;font-size:.7rem;color:var(--muted);margin-bottom:6px" id="sMIN">Presioná Simular</div>
+    <canvas id="pitch" height="290"></canvas>
+    <div style="margin:7px 0">
+      <div style="font-size:.64rem;color:var(--muted);margin-bottom:3px">Momentum físico Dixon-Coles</div>
+      <div style="position:relative;height:5px;background:var(--border);border-radius:3px;overflow:hidden">
+        <div id="mA" style="position:absolute;left:0;height:100%;background:var(--green);border-radius:3px;transition:width .5s;width:50%"></div>
+        <div id="mB" style="position:absolute;right:0;height:100%;background:var(--red);border-radius:3px;transition:width .5s;width:50%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:2px">
+        <span id="mAv" style="font-size:.65rem;color:var(--green)">50%</span>
+        <span id="mBv" style="font-size:.65rem;color:var(--red)">50%</span>
+      </div>
+    </div>
+    <div class="g4" style="margin-bottom:7px">
+      <div class="metric"><div class="ml">Ocas A</div><div class="mv gv" id="sOA" style="font-size:1rem">0</div></div>
+      <div class="metric"><div class="ml">Goles A</div><div class="mv gv" id="sGA" style="font-size:1rem">0</div></div>
+      <div class="metric"><div class="ml">Goles B</div><div class="mv rv" id="sGB" style="font-size:1rem">0</div></div>
+      <div class="metric"><div class="ml">Ocas B</div><div class="mv rv" id="sOB" style="font-size:1rem">0</div></div>
+    </div>
+    <div style="display:flex;gap:5px;margin-bottom:7px">
+      <button class="btn btn-g" style="flex:2" onclick="simular()">Simular partido</button>
+      <button class="btn btn-o" onclick="resetSim()">Reset</button>
+      <button class="btn btn-o" style="flex:2" onclick="sim1000()">1000 sims</button>
+    </div>
+    <div id="sLOG" style="background:var(--surf2);border-radius:8px;padding:7px;max-height:85px;overflow-y:auto;font-size:.7rem;color:var(--muted)">El registro aparecerá aquí</div>
+    <div id="sRES" style="display:none;margin-top:7px"></div>
+  </div>
+</div>
+
+</div><!-- end .app -->
+
+<script>
+// ============================================================
+// FBREF — via backend propio en Railway (sin Cloudflare, gratis)
+// ============================================================
+const BACKEND_URL = 'https://xg-backend-production.up.railway.app';
+let debounceTimers = {};
+let teamCache = {}; // { local: {name, href}, visitante: {name, href} }
+
+// ── FETCH AL BACKEND ─────────────────────────────────────────
+async function bFetch(path) {
+  const res = await fetch(BACKEND_URL + path, { signal: AbortSignal.timeout(12000) });
+  if (!res.ok) {
+    const err = await res.json().catch(()=>({error:'Error '+res.status}));
+    throw new Error(err.error || 'Error ' + res.status);
+  }
+  return res.json();
+}
+
+// ── 1. DEBOUNCE + BUSCAR EQUIPO ──────────────────────────────
+function buscarEquipo(tipo, valor) {
+  clearTimeout(debounceTimers[tipo]);
+  const spId   = tipo === 'local' ? 'spLocal'   : 'spVisitante';
+  const sugId  = tipo === 'local' ? 'sugLocal'  : 'sugVisitante';
+  const infoId = tipo === 'local' ? 'infoLocal' : 'infoVisitante';
+
+  if (valor.length < 2) {
+    document.getElementById(sugId).style.display = 'none';
+    document.getElementById(infoId).textContent  = '';
+    return;
+  }
+  document.getElementById(spId).style.display = 'inline';
+  document.getElementById(infoId).textContent  = 'Buscando en FBref...';
+  debounceTimers[tipo] = setTimeout(() => searchTeam(tipo, valor), 700);
+}
+
+// ── 2. BUSCAR EQUIPO EN FBREF ────────────────────────────────
+async function searchTeam(tipo, query) {
+  const spId   = tipo === 'local' ? 'spLocal'   : 'spVisitante';
+  const sugId  = tipo === 'local' ? 'sugLocal'  : 'sugVisitante';
+  const infoId = tipo === 'local' ? 'infoLocal' : 'infoVisitante';
+  const liga   = document.getElementById('ligaSelect')?.value || '9';
+
+  try {
+    const data  = await bFetch(`/search?q=${encodeURIComponent(query)}&league=${liga}`);
+    const teams = (data.teams || []).slice(0, 8);
+    document.getElementById(spId).style.display = 'none';
+
+    if (!teams.length) {
+      document.getElementById(infoId).textContent = 'Sin resultados en esta liga. Probá cambiar la liga o el nombre en inglés.';
+      document.getElementById(sugId).style.display = 'none';
+      return;
+    }
+
+    const sug = document.getElementById(sugId);
+    sug.style.display = 'block';
+    sug.innerHTML = teams.map(t =>
+      `<div onclick="selectTeam('${tipo}','${escapeQ(t.href||'')}','${escapeQ(t.name)}')"
+        style="padding:7px 10px;cursor:pointer;border-bottom:1px solid var(--border);
+               font-size:.8rem;display:flex;align-items:center;gap:8px"
+        onmouseover="this.style.background='var(--surf)'"
+        onmouseout="this.style.background=''">
+        <strong>${t.name}</strong>
+        ${t.xg ? `<span style="color:var(--green);font-size:.68rem;margin-left:auto">xG ${t.xg}</span>` : ''}
+      </div>`
+    ).join('');
+    document.getElementById(infoId).textContent = `${teams.length} equipo${teams.length>1?'s':''} encontrado${teams.length>1?'s':''}`;
+  } catch(e) {
+    document.getElementById(spId).style.display = 'none';
+    document.getElementById(sugId).style.display = 'none';
+    document.getElementById(infoId).innerHTML =
+      `<span style="color:var(--red)">⚠️ ${e.message}</span>
+       <span style="color:var(--amber)"> Podés ingresar los XG manualmente arriba.</span>`;
+  }
+}
+
+function escapeQ(s) { return s.replace(/'/g,"\'").replace(/"/g,''); }
+
+// ── 3. SELECCIONAR EQUIPO → TRAER XG DE FBREF ───────────────
+async function selectTeam(tipo, teamHref, teamName) {
+  const sugId  = tipo === 'local' ? 'sugLocal'    : 'sugVisitante';
+  const infoId = tipo === 'local' ? 'infoLocal'   : 'infoVisitante';
+  const inputId= tipo === 'local' ? 'buscarLocal' : 'buscarVisitante';
+  const spId   = tipo === 'local' ? 'spLocal'     : 'spVisitante';
+  const esLocal= tipo === 'local';
+
+  document.getElementById(sugId).style.display = 'none';
+  document.getElementById(inputId).value       = teamName;
+  document.getElementById(spId).style.display  = 'inline';
+  document.getElementById(infoId).textContent  = `Descargando XG últimos 10 partidos de ${teamName} desde FBref...`;
+  teamCache[tipo] = { href: teamHref, name: teamName };
+
+  try {
+    if (!teamHref) throw new Error('Sin URL del equipo en FBref');
+    const hrefEnc = encodeURIComponent(teamHref);
+    const home    = esLocal ? 1 : 0;
+    const data    = await bFetch(`/team-xg?href=${hrefEnc}&home=${home}`);
+    const { partidos, avgXG, avgXGA, total } = data;
+
+    document.getElementById(spId).style.display = 'none';
+    document.getElementById(infoId).innerHTML =
+      `✅ <strong>${teamName}</strong> · ${total} partidos (FBref) · ` +
+      `XG a favor: <span style="color:var(--green)">${avgXG.toFixed(2)}</span> · ` +
+      `XG en contra: <span style="color:var(--red)">${avgXGA.toFixed(2)}</span>`;
+
+    rellenarCampos(tipo, avgXG, avgXGA, teamName);
+
+    const validos = partidos.map(p => ({
+      xgF: p.xg, xgA: p.xga,
+      opponent: p.rival, score: p.gf + '-' + p.ga, fecha: p.fecha
+    }));
+    mostrarTablaPartidos(tipo, validos, teamName);
+    calcular();
+
+  } catch(e) {
+    document.getElementById(spId).style.display = 'none';
+    document.getElementById(infoId).innerHTML =
+      `<span style="color:var(--red)">⚠️ ${e.message}</span>
+       <span style="color:var(--amber)"> Ingresá los XG manualmente arriba.</span>`;
+    console.error('FBref error:', e);
+  }
+}
+
+// ── 5. RELLENAR CAMPOS EN EL HTML ────────────────────────────
+function rellenarCampos(tipo, xgF, xgA, nombre) {
+  if (tipo === 'local') {
+    // Nombre del equipo local
+    setVal('nA', nombre);
+    // XG liga a favor (local atacando en casa)
+    setVal('xgLA', xgF.toFixed(2));
+    // XG liga en contra (local recibiendo en casa)
+    setVal('xgLAc', xgA.toFixed(2));
+    // También actualizar contexto UCL con los mismos datos como base
+    setVal('ctxAa', xgF.toFixed(2));
+  } else {
+    // Nombre del equipo visitante
+    setVal('nB', nombre);
+    // XG liga a favor (visitante atacando fuera)
+    setVal('xgLB', xgF.toFixed(2));
+    // XG liga en contra (visitante recibiendo fuera)
+    setVal('xgLBc', xgA.toFixed(2));
+    // Contexto
+    setVal('ctxBa', xgF.toFixed(2));
+  }
+  syncNames();
+}
+
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = val;
+}
+
+// ── 6. MOSTRAR TABLA DE PARTIDOS USADOS ─────────────────────
+function mostrarTablaPartidos(tipo, partidos, nombre) {
+  const tablaId = tipo === 'local' ? 'tblLocal' : 'tblVisitante';
+  const lblId   = tipo === 'local' ? 'lblTabLocal' : 'lblTabVisit';
+
+  document.getElementById('tablaPartidos').style.display = 'block';
+  document.getElementById(lblId).textContent = nombre + (tipo==='local' ? ' (casa)' : ' (visita)');
+
+  const rows = partidos.map(p =>
+    `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border);font-family:'Space Mono',monospace">
+      <span style="color:var(--muted);font-size:.65rem">${p.fecha}</span>
+      <span style="font-size:.68rem">vs ${(p.opponent||'?').slice(0,12)}</span>
+      <span style="font-size:.65rem;color:var(--muted)">${p.score}</span>
+      <span style="color:var(--green);font-size:.65rem">${p.xgF.toFixed(2)}</span>
+      <span style="color:var(--red);font-size:.65rem">${p.xgA.toFixed(2)}</span>
+    </div>`
+  ).join('');
+
+  document.getElementById(tablaId).innerHTML =
+    `<div style="display:flex;justify-content:space-between;font-size:.6rem;color:var(--muted);margin-bottom:3px;font-weight:600">
+      <span>Fecha</span><span>Rival</span><span>Res</span><span style="color:var(--green)">XGF</span><span style="color:var(--red)">XGA</span>
+    </div>` + rows;
+}
+
+// ============================================================
+// Utilidades matemáticas
+// ============================================================
+const F = n => { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; }
+const po = (l, k) => Math.pow(l, k) / F(k) * Math.exp(-l);
+const pct = v => (v * 100).toFixed(1) + '%';
+const p0 = v => Math.round(v * 100);
+
+let ST = {};
+let running = false, raf = null, players = [], effects = [], mA = 0, mB = 0, logs = [];
+let sA = 0, sB = 0, ocA = 0, ocB = 0, min = 0;
+const FW = 640, FH = 290, MX = FW / 2, MY = FH / 2;
+const MMAX = 0.12, MDEC = 0.008, MOCC = 0.03, MGOL = 0.08;
+
+// ============================================================
+// FIX #2: syncNames definida ANTES de que el HTML la invoque
+// (el script está al final del body — la función ya existe
+//  cuando el usuario interactúa, pero declaramos igual primero)
+// ============================================================
+function syncNames() {
+  const nA = document.getElementById('nA').value || 'Local';
+  const nB = document.getElementById('nB').value || 'Visitante';
+  [
+    ['lca', 'Gana ' + nA], ['lcb', 'Gana ' + nB],
+    ['la1', 'Ataque ' + nA + ' ctx'], ['la2', 'Defensa ' + nA + ' ctx'],
+    ['lb1', 'Ataque ' + nB + ' ctx'], ['lb2', 'Defensa ' + nB + ' ctx'],
+    ['lhc1', 'HC -0.5 ' + nA], ['lhc2', 'HC +0.5 ' + nB],
+    ['sNA', nA], ['sNB', nB]
+  ].forEach(([id, txt]) => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = txt; }
+  });
+}
+
+function showTab(id, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+  calcular();
+}
+
+function calcular() {
+  const nA = document.getElementById('nA').value || 'Local';
+  const nB = document.getElementById('nB').value || 'Visitante';
+  const xgLA  = +document.getElementById('xgLA').value  || 1.66;
+  const xgLAc = +document.getElementById('xgLAc').value || 1.13;
+  const xgLB  = +document.getElementById('xgLB').value  || 2.29;
+  const xgLBc = +document.getElementById('xgLBc').value || 0.75;
+  const ctxAa = +document.getElementById('ctxAa').value || 2.13;
+  const ctxAd = +document.getElementById('ctxAd').value || 1.25;
+  const ctxBa = +document.getElementById('ctxBa').value || 1.19;
+  const ctxBd = +document.getElementById('ctxBd').value || 1.75;
+
+  const lA = (((xgLA + xgLA + ctxAa) / 3) + ctxBd) / 2;
+  const lB = (((xgLB + xgLB + ctxBa) / 3) + ctxAd) / 2;
+
+  const N = 8, M = [];
+  for (let i = 0; i < N; i++) {
+    M.push([]);
+    // FIX #1: operador * sin backslash (el \* del repo era escape de Markdown)
+    for (let j = 0; j < N; j++) M[i].push(po(lA, i) * po(lB, j));
+  }
+
+  const Sm = fn => { let s = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (fn(i, j)) s += M[i][j]; return Math.min(s, 1); };
+
+  const vA = Sm((i, j) => i > j), em = Sm((i, j) => i === j), vB = Sm((i, j) => j > i);
+  const aSi = 1 - M.reduce((s, r) => s + r[0], 0);
+  const bSi = 1 - M[0].reduce((s, v) => s + v, 0);
+  const amb = aSi * bSi, nin = M[0][0];
+  const slA = aSi * (1 - bSi), slB = (1 - aSi) * bSi;
+  const a15 = Sm((i, j) => i + j > 1), d15 = 1 - a15;
+  const a25 = Sm((i, j) => i + j > 2), d25 = 1 - a25;
+  const a35 = Sm((i, j) => i + j > 3), d35 = 1 - a35;
+  const geA = vA + em, geB = vB + em;
+  const gEx = Array.from({ length: 8 }, (_, t) => Sm((i, j) => i + j === t));
+
+  const cA   = +document.getElementById('cA').value   || 1.70;
+  const cX   = +document.getElementById('cX').value   || 3.80;
+  const cB   = +document.getElementById('cB').value   || 5.50;
+  const cA15 = +document.getElementById('cA15').value || 1.20;
+  const cD15 = +document.getElementById('cD15').value || 5.50;
+  const cA25 = +document.getElementById('cA25').value || 1.85;
+  const cD25 = +document.getElementById('cD25').value || 1.95;
+  const cA35 = +document.getElementById('cA35').value || 2.90;
+  const cD35 = +document.getElementById('cD35').value || 1.40;
+  const cAmb = +document.getElementById('cAmb').value || 1.80;
+  const cHc1 = +document.getElementById('cHc1').value || 1.65;
+  const cHc2 = +document.getElementById('cHc2').value || 2.20;
+
+  ST = { nA, nB, lA, lB, vA, em, vB, aSi, bSi, amb, nin, slA, slB, a15, d15, a25, d25, a35, d35, geA, geB, gEx, M, cA, cX, cB, cA15, cD15, cA25, cD25, cA35, cD35, cAmb, cHc1, cHc2, Sm };
+  renderAll();
+}
+
+function renderAll() {
+  renderAnalisis(); renderMercados(); renderHandicap(); renderNarrativa(); renderSilos();
+  document.getElementById('sNA').textContent = ST.nA;
+  document.getElementById('sNB').textContent = ST.nB;
+}
+
+function renderAnalisis() {
+  const { nA, nB, lA, lB, vA, em, vB, a15, a25, a35, amb, d25, M } = ST;
+  document.getElementById('m1x2').innerHTML = [
+    [nA + ' gana', vA, 'var(--green)'],
+    [' Empate ',   em, 'var(--amber)'],
+    [nB + ' gana', vB, 'var(--red)']
+  ].map(([l, v, c]) =>
+    `<div class="metric"><div class="ml">${l}</div><div class="mv" style="color:${c}">${pct(v)}</div><div class="pb"><div class="pf" style="width:${pct(v)};background:${c}"></div></div></div>`
+  ).join('');
+
+  document.getElementById('mgoles').innerHTML = [
+    ['Arriba 1.5', a15, 'bv'], ['Arriba 2.5', a25, 'bv'],
+    ['Ambos marcan', amb, 'bv'], ['Debajo 2.5', d25, 'muv']
+  ].map(([l, v, c]) =>
+    `<div class="metric"><div class="ml">${l}</div><div class="mv ${c}">${pct(v)}</div></div>`
+  ).join('');
+
+  document.getElementById('mlambda').innerHTML = `
+    <div class="metric"><div class="ml">λ ${nA}</div><div class="mv gv">${lA.toFixed(3)}</div><div class="msub">goles esperados</div></div>
+    <div class="metric"><div class="ml">λ ${nB}</div><div class="mv rv">${lB.toFixed(3)}</div><div class="msub">goles esperados</div></div>`;
+
+  let h = `<table class="mx"><tr><th>${nA.slice(0,5)}\\${nB.slice(0,5)}</th>`;
+  for (let j = 0; j < 6; j++) h += `<th>${j}g</th>`;
+  h += '</tr>';
+  for (let i = 0; i < 6; i++) {
+    h += `<tr><th>${i}g</th>`;
+    for (let j = 0; j < 6; j++) {
+      const c = i > j ? 'wina' : i === j ? 'draw' : 'winb';
+      h += `<td class="${c}">${(M[i][j] * 100).toFixed(1)}%</td>`;
+    }
+    h += '</tr>';
+  }
+  document.getElementById('mmatrix').innerHTML = h + '</table>';
+
+  h = '<table class="tbl"><tr><th>k</th><th style="color:var(--green)">P(' + nA + ')</th><th style="color:var(--red)">P(' + nB + ')</th></tr>';
+  for (let k = 0; k < 6; k++)
+    h += `<tr><td>${k}</td><td style="color:var(--green)">${(po(lA, k) * 100).toFixed(2)}%</td><td style="color:var(--red)">${(po(lB, k) * 100).toFixed(2)}%</td></tr>`;
+  document.getElementById('mpoisson').innerHTML = h + '</table>';
+}
+
+function mkRow(n, m, i) {
+  const d = m - i;
+  let c, s;
+  if      (d >  0.10) { c = 'sg';  s = 'Tu modelo supera (+' + pct(d) + ')'; }
+  else if (d >  0.05) { c = 'sa';  s = 'Diferencia moderada'; }
+  else if (d > -0.05) { c = 'sm';  s = 'Consenso ajustó bien'; }
+  else if (d > -0.10) { c = 'sa';  s = 'Casa sobrevalora leve'; }
+  else                { c = 'sr2'; s = 'Casa sobrevalora (' + pct(Math.abs(d)) + ')'; }
+  return `<div class="mr"><span class="mn">${n}</span><span class="mm" style="color:var(--green)">${pct(m)}</span><span class="mm" style="color:var(--muted)">${pct(i)}</span><span class="mdi" style="color:${d>0?'var(--green)':'var(--red)'}">${d>0?'+':''}${pct(d)}</span><span class="ms2 ${c}">${s}</span></div>`;
+}
+
+function renderMercados() {
+  const { nA, nB, vA, em, vB, a15, d15, a25, d25, a35, d35, amb, geA, geB, slA, slB, nin, cA, cX, cB, cA15, cD15, cA25, cD25, cA35, cD35, cAmb } = ST;
+  const s1 = 1/cA + 1/cX + 1/cB;
+  const s15 = 1/cA15 + 1/cD15, s25 = 1/cA25 + 1/cD25, s35 = 1/cA35 + 1/cD35;
+  const sAmb = 1/cAmb + 1/2.00;
+
+  const mkts = [
+    [nA + ' gana', vA, (1/cA)/s1],
+    [' Empate ',   em, (1/cX)/s1],
+    [nB + ' gana', vB, (1/cB)/s1],
+    ['Gana o empata ' + nA, geA, (1/cA + 1/cX)/s1],
+    ['Gana o empata ' + nB, geB, (1/cB + 1/cX)/s1],
+    ['Arriba 1.5', a15, (1/cA15)/s15],
+    ['Debajo 1.5', d15, (1/cD15)/s15],
+    ['Arriba 2.5', a25, (1/cA25)/s25],
+    ['Debajo 2.5', d25, (1/cD25)/s25],
+    ['Arriba 3.5', a35, (1/cA35)/s35],
+    ['Debajo 3.5', d35, (1/cD35)/s35],
+    ['Ambos marcan', amb, (1/cAmb)/sAmb],
+    ['Solo marca ' + nA, slA, slA],
+    ['Solo marca ' + nB, slB, slB],
+    ['Nadie marca (0-0)', nin, nin],
+  ];
+  document.getElementById('mmkt').innerHTML = mkts.map(([n, m, i]) => mkRow(n, m, i)).join('');
+
+  const dA = vA - (1/cA)/s1, dB = vB - (1/cB)/s1;
+  const dA25 = a25 - (1/cA25)/s25, dAmb = amb - (1/cAmb)/sAmb;
+  let txt = '', cls = 'di';
+  if      (dA < -0.10 && dB > 0.10) { txt = `Disonancia cruzada: casa sobrevalora al local (${pct(Math.abs(dA))}) y tu modelo ve más en ${nB} (${pct(dB)}). Misma disonancia desde los dos lados.`; cls = 'dw'; }
+  else if (dB > 0.10)  { txt = `Tu modelo supera a la casa en Gana ${nB} por ${pct(dB)}. La masa apoyó al local.`; cls = 'dw'; }
+  else if (dA > 0.10)  { txt = `Tu modelo supera a la casa en Gana ${nA} por ${pct(dA)}.`; cls = 'do'; }
+  else if (dA25 > 0.10){ txt = `Tu modelo ve muchos más goles que la casa (+${pct(dA25)} en Arriba 2.5).`; cls = 'dw'; }
+  else if (dAmb > 0.10){ txt = `Tu modelo ve mucho más probabilidad de que ambos marquen (+${pct(dAmb)}).`; cls = 'dw'; }
+  else                 { txt = 'El consenso ajustó bien. Sin diferencia aplastante. Pasá este partido.'; cls = 'do'; }
+  document.getElementById('mconcl').innerHTML = `<div class="dis ${cls}" style="margin-top:.5rem"><strong>Conclusión:</strong> ${txt}</div>`;
+}
+
+function renderHandicap() {
+  const { nA, nB, Sm, M, gEx, cHc1, cHc2 } = ST;
+  const hcs = [
+    [nA + ' -0.5 (gana partido)',        Sm((i,j) => i > j),       cHc1],
+    [nB + ' +0.5 (no pierde)',            Sm((i,j) => j >= i),      cHc2],
+    [nA + ' -1 (gana por 2+)',            Sm((i,j) => i - j >= 2),  3.20],
+    [nA + ' gana exacto 1 gol',           Sm((i,j) => i - j === 1), 4.50],
+    [nB + ' +1 (pierde máx 1)',           Sm((i,j) => j - i >= -1), 1.35],
+    [nA + ' -1.5 (gana 2+)',              Sm((i,j) => i - j >= 2),  3.80],
+    [nB + ' +1.5 (pierde máx 1 o gana)', Sm((i,j) => j - i >= -1), 1.28],
+    [nA + ' +0.5 (no pierde)',            Sm((i,j) => i >= j),      1.50],
+    [nB + ' -0.5 (gana)',                 Sm((i,j) => j > i),       2.50],
+  ];
+
+  let h = `<div style="display:flex;gap:5px;font-size:.6rem;color:var(--muted);padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:4px"><span style="flex:1">Handicap</span><span style="min-width:52px;text-align:right">Modelo</span><span style="min-width:52px;text-align:right">Ref</span><span style="min-width:52px;text-align:right">Diff</span></div>`;
+  hcs.forEach(([n, m, c]) => {
+    const d = m - 1/c;
+    const col = d > 0.08 ? 'var(--green)' : d > 0 ? 'var(--amber)' : 'var(--red)';
+    h += `<div class="mr"><span class="mn">${n}</span><span class="mm" style="color:var(--green)">${pct(m)}</span><span class="mm" style="color:var(--muted)">${pct(1/c)}</span><span class="mdi" style="color:${col}">${d>0?'+':''}${pct(d)}</span></div>`;
+  });
+  document.getElementById('mhc').innerHTML = h;
+
+  const refs = { 0:9, 1:5.5, 2:3.8, 3:4.5, 4:7, 5:12, 6:20 };
+  h = '<div style="display:flex;gap:5px;font-size:.6rem;color:var(--muted);padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:4px"><span style="flex:1">Total goles</span><span style="min-width:52px;text-align:right">Modelo</span><span style="min-width:52px;text-align:right">Ref impl.</span><span style="min-width:118px;text-align:right">Estado</span></div>';
+  for (let k = 0; k <= 5; k++) {
+    const p = gEx[k] || 0, c = refs[k] || 20, impl = 1/c, d = p - impl;
+    let s, cls;
+    if      (d > 0.05) { s = 'Tu modelo supera'; cls = 'sg'; }
+    else if (d > 0)    { s = 'Leve ventaja';     cls = 'sa'; }
+    else               { s = 'Casa sobrevalora'; cls = 'sr2'; }
+    h += `<div class="mr"><span class="mn">Exactamente ${k} gol${k!==1?'es':''}</span><span class="mm" style="color:var(--green)">${pct(p)}</span><span class="mm" style="color:var(--muted)">${pct(impl)}</span><span class="ms2 ${cls}">${s}</span></div>`;
+  }
+  document.getElementById('mgex').innerHTML = h;
+}
+
+function renderNarrativa() {
+  const { nA, nB, lA, lB, vA, em, vB, a25, d25, a35, amb, nin, a15, M, cA, cX, cB, cA25, cD25 } = ST;
+  const s1 = 1/cA + 1/cX + 1/cB, s25 = 1/cA25 + 1/cD25;
+  const implVA = (1/cA)/s1, implVB = (1/cB)/s1, implA25 = (1/cA25)/s25;
+  const diffA = vA - implVA, diffB = vB - implVB, diffA25 = a25 - implA25;
+  const difL = Math.abs(lA - lB);
+
+  let domTxt, domContra;
+  if (difL > 1.2) {
+    const dom = lA > lB ? nA : nB, deb = lA > lB ? nB : nA;
+    domTxt    = dom + ' domina claramente — genera casi el doble de oportunidades que ' + deb + '. El partido deberia ser controlado.';
+    domContra = 'Contradiccion posible: incluso equipos que dominan pueden perder. Un arquero excepcional o un gol de contraataque rompe todo el dominio estadistico.';
+  } else if (difL > 0.5) {
+    const dom = lA > lB ? nA : nB;
+    domTxt    = 'Ventaja moderada de ' + dom + '. Partido disputado — el rival tiene chances reales.';
+    domContra = 'Contradiccion: con esta diferencia de lambda, en 1 de cada 3 partidos similares gana el equipo menos dominante.';
+  } else {
+    domTxt    = 'Partido muy equilibrado. Ningun equipo domina. Un detalle decide.';
+    domContra = 'Cuando los lambda son casi iguales el modelo tiene poca capacidad predictiva. El azar pesa mas que la senal.';
+  }
+
+  let golesTxt, golesContra, golesRango;
+  if (a25 > 0.65 && amb > 0.62) {
+    golesTxt    = 'El modelo espera 3+ goles y ambos equipos marcando. Partido abierto.';
+    golesContra = 'Contradiccion interna: el marcador mas probable sigue siendo 1-1. El modelo dice abierto y a la vez que 2 goles es lo mas frecuente.';
+    golesRango  = 'Rango realista: 60% de probabilidad de terminar entre 2 y 4 goles totales.';
+  } else if (a25 > 0.50) {
+    golesTxt    = 'Goles moderados. El modelo ve mas partidos con 3 goles que con 1, pero no aplastantemente.';
+    golesContra = 'Debajo 2.5 tiene ' + pct(d25) + ' — casi 1 de cada 3 partidos termina con 0, 1 o 2 goles. Partido cerrado no es descartable.';
+    golesRango  = 'Rango realista: entre 1 y 3 goles cubre el 70% de los escenarios.';
+  } else {
+    golesTxt    = 'Partido cerrado. El 0-0, 1-0 y 0-1 son escenarios muy probables.';
+    golesContra = 'El modelo es consistente — sin contradiccion interna fuerte.';
+    golesRango  = 'El 65% de los partidos similares terminan con 0, 1 o 2 goles totales.';
+  }
+
+  const scores = [];
+  for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) scores.push([M[i][j], i, j]);
+  scores.sort((a, b) => b[0] - a[0]);
+  const top4 = scores.slice(0, 4), t1 = top4[0];
+  // FIX #1: operador * sin backslash en t1[0]*100
+  const topTxt = top4.map(x => x[1] + '-' + x[2] + ' (' + pct(x[0]) + ')').join(' · ');
+
+  document.getElementById('mnarr').innerHTML =
+    '<div class="nr"><span class="nl">Dominio</span><div>' +
+    '<span class="nt">' + domTxt + '</span>' +
+    '<div style="margin-top:5px;font-size:.75rem;color:var(--amber);font-style:italic">Contradiccion: ' + domContra + '</div>' +
+    '</div></div>' +
+    '<div class="nr"><span class="nl">Goles</span><div>' +
+    '<span class="nt">' + golesTxt + '</span>' +
+    '<div style="margin-top:5px;font-size:.75rem;color:var(--amber);font-style:italic">Contradiccion: ' + golesContra + '</div>' +
+    '<div style="margin-top:4px;font-size:.75rem;color:var(--blue)">' + golesRango + '</div>' +
+    '</div></div>' +
+    '<div class="nr"><span class="nl">Marcadores</span><div>' +
+    '<span class="nt">El mas probable es <strong>' + t1[1] + '-' + t1[2] + '</strong> con ' + (t1[0] * 100).toFixed(1) + '% — ocurre en 1 de cada ' + Math.round(100 / t1[0]) + ' partidos similares.</span>' +
+    '<div style="margin-top:4px;font-size:.75rem;color:var(--muted)">Top 4: ' + topTxt + '</div>' +
+    '</div></div>' +
+    '<div class="nr"><span class="nl">Frecuencia</span>' +
+    '<span class="nt">Gana ' + nA + ': ' + p0(vA) + '/100 · Empate: ' + p0(em) + '/100 · Gana ' + nB + ': ' + p0(vB) + '/100 · Ambos marcan: ' + p0(amb) + '/100</span>' +
+    '</div>';
+
+  // FLB
+  let flbHtml = '';
+  const sesgoA = implVA - vA, sesgoB = implVB - vB;
+  if (sesgoA > 0.08 && diffB > 0.08) {
+    flbHtml = '<div class="dis dw"><strong>Distorsion de masa — senal doble:</strong><br><br>' +
+      'La casa paga a ' + nA + ' como si tuviera ' + pct(implVA) + ' de ganar. Tu modelo dice ' + pct(vA) + '. La masa aposto masivamente al local — la casa bajo su cuota sin que los datos lo justifiquen.<br><br>' +
+      'Al mismo tiempo ' + nB + ' tiene ' + pct(vB) + ' segun el modelo pero la casa implica ' + pct(implVB) + '. Diferencia de ' + pct(diffB) + '.<br><br>' +
+      '<strong>Senal para el handicap:</strong> ' + nB + ' +1.5 tiene valor porque la masa asume goleada del local y los datos dicen partido disputado.</div>';
+  } else if (sesgoA > 0.08) {
+    flbHtml = '<div class="dis dw"><strong>Sesgo de masa hacia el local:</strong><br><br>' +
+      'La casa paga a ' + nA + ' a ' + pct(implVA) + ' implicito cuando el modelo dice ' + pct(vA) + '. La masa sobreapuesto al local por reputacion — no por datos.</div>';
+  } else if (diffB > 0.10) {
+    flbHtml = '<div class="dis do"><strong>Visitante subvalorado por la masa:</strong><br><br>' +
+      'La casa paga a ' + nB + ' a ' + pct(implVB) + ' implicito cuando el modelo dice ' + pct(vB) + '. En partidos similares ' + nB + ' gana ' + p0(vB) + ' de cada 100 — la casa lo trata como si ganara solo ' + p0(Math.round(implVB * 100)) + ' de cada 100.</div>';
+  } else if (diffA25 > 0.10) {
+    flbHtml = '<div class="dis dw"><strong>Distorsion en goles:</strong><br><br>' +
+      'La casa trata este partido como mas cerrado de lo que el XG dice. Arriba 2.5 tiene ' + pct(a25) + ' segun el modelo pero la casa implica ' + pct(implA25) + '. La masa apuesta al resultado y la casa calibra mal los goles.</div>';
+  } else {
+    flbHtml = '<div class="dis do"><strong>Sin distorsion de masa significativa:</strong><br><br>' +
+      'Las cuotas reflejan razonablemente las probabilidades del modelo. El consenso ajusto bien este partido.</div>';
+  }
+  document.getElementById('mflb').innerHTML = flbHtml;
+
+  document.getElementById('mbias').innerHTML =
+    '<div style="font-size:.8rem;color:var(--text2);line-height:1.7">' +
+    '<div style="margin-bottom:8px;color:var(--amber);font-weight:500">Este modelo asume cosas que pueden estar equivocadas:</div>' +
+    '<div style="margin-bottom:7px">▸ <strong>Independencia de Poisson:</strong> asume que los goles de ambos equipos no se afectan entre si. En realidad cuando un equipo recibe un gol cambia su estrategia.</div>' +
+    '<div style="margin-bottom:7px">▸ <strong>Regresion a la media:</strong> asume que el historial predice el futuro. Un equipo en racha o en crisis rompe esa suposicion.</div>' +
+    '<div style="margin-bottom:7px">▸ <strong>Sin datos intra-partido:</strong> no sabe si el arquero esta excepcional, si hay lesiones clave, si el arbitro favorece a alguien.</div>' +
+    '<div style="margin-bottom:7px">▸ <strong>XG promedio:</strong> usa promedios historicos. Un partido especifico puede ser completamente distinto al promedio.</div>' +
+    '<div style="color:var(--muted);font-style:italic;margin-top:8px">El modelo es una aproximacion honesta — no la verdad. Cualquier conclusion que parezca segura es un sesgo del sistema, no un hecho.</div>' +
+    '</div>';
+}
+
+function renderSilos() {
+  const { nA, nB, vA, em, vB, a15, a25, a35, d15, amb, nin, geA, geB, slA, slB, aSi, bSi, cA, cX, cB, cA25, cD25, cAmb } = ST;
+
+  const silos = [
+    { ok: Math.abs(vA + em + vB - 1) < 0.02, t: 'Gana A + Empate + Gana B = 100%',    ot: 'Suma correcta: ' + pct(vA) + '+' + pct(em) + '+' + pct(vB), et: 'ERROR: no suman 100% — modelo roto, no apostas nada' },
+    { ok: a15 >= a25 && a25 >= a35,           t: 'Arriba 1.5 >= Arriba 2.5 >= Arriba 3.5', ot: pct(a15) + ' >= ' + pct(a25) + ' >= ' + pct(a35), et: 'IMPOSIBLE: mas goles siempre es menos probable' },
+    { ok: amb <= a15 + 0.001,                 t: 'Ambos marcan <= Arriba 1.5',         ot: pct(amb) + ' <= ' + pct(a15),  et: 'IMPOSIBLE: si ambos marcan hay minimo 2 goles' },
+    { ok: vA <= geA + 0.001,                  t: 'Gana ' + nA + ' <= Gana o empata ' + nA, ot: pct(vA) + ' <= ' + pct(geA), et: 'IMPOSIBLE: ganar es subconjunto de ganar-o-empatar' },
+    { ok: nin <= d15 + 0.001,                 t: 'Nadie marca <= Debajo 1.5',          ot: pct(nin) + ' <= ' + pct(d15),  et: 'IMPOSIBLE: 0-0 es subconjunto de menos de 1.5' },
+    { ok: slA <= aSi + 0.001,                 t: 'Solo marca ' + nA + ' <= ' + nA + ' marca', ot: pct(slA) + ' <= ' + pct(aSi), et: 'IMPOSIBLE' },
+    { ok: slB <= bSi + 0.001,                 t: 'Solo marca ' + nB + ' <= ' + nB + ' marca', ot: pct(slB) + ' <= ' + pct(bSi), et: 'IMPOSIBLE' },
+    { ok: Math.abs(vA + vB + em - 1) < 0.02, t: 'Suma total = 100%', ot: 'Modelo calibrado correctamente', et: 'ERROR DE CALIBRACION' },
+  ];
+
+  let h = '';
+  silos.forEach(s => {
+    const c = s.ok ? 'var(--green)' : 'var(--red)';
+    h += '<div class="sr3"><span style="color:' + c + ';font-weight:700;min-width:14px;font-size:.9rem">' + (s.ok ? 'v' : 'x') + '</span>' +
+      '<div><div style="font-size:.78rem;color:var(--text);font-weight:500">' + s.t + '</div>' +
+      '<div style="font-size:.7rem;margin-top:2px;color:' + c + '">' + (s.ok ? s.ot : s.et) + '</div></div></div>';
+  });
+  document.getElementById('msilo1').innerHTML = h;
+
+  const tens = [
+    {
+      act: Math.abs(ST.amb - ST.a25) < 0.05,
+      t: 'Ambos marcan aprox Arriba 2.5 — tension de concentracion',
+      val: pct(ST.amb) + ' ambos vs ' + pct(ST.a25) + ' arriba 2.5',
+      qPasa: 'El marcador 1-1 concentra casi el 9% solo. El modelo predice partido con goles de ambos lados pero ajustado — no una goleada.',
+      siArriba: 'Si hay 2-1 o 1-2 o 2-2 — Arriba 2.5 y Ambos marcan ganan. Handicap favorito pierde valor.',
+      siAbajo: 'Si hay 1-0 o 0-1 o 1-1 — Debajo 2.5 gana. El 1-1 es el escenario bisagra.',
+      consejo: 'La casa paga el 0-0 igual que cualquier empate. El 0-0 tiene solo ' + pct(ST.nin) + ' — hay valor en apostar contra el 0-0.'
+    },
+    {
+      act: ST.em > 0.22 && ST.amb > 0.60,
+      t: 'Empate probable + Ambos marcan — el 1-1 es el marcador oculto',
+      val: pct(ST.em) + ' empate · ' + pct(ST.amb) + ' ambos marcan',
+      qPasa: 'Cuando el empate es probable Y ambos marcan es probable, el 1-1 concentra mucha probabilidad. El 0-0 es improbable pero la casa lo agrupa con todos los empates.',
+      siArriba: 'Si hay empate con goles (1-1, 2-2) — Ambos marcan y Empate ganan. El 1-1 paga mejor que Arriba 2.5.',
+      siAbajo: 'Si hay empate sin goles (0-0) — solo Empate gana. Ambos marcan pierde. El 0-0 tiene ' + pct(ST.nin) + '.',
+      consejo: 'El 1-1 paga tipicamente 5.00-6.50 pero el modelo le da casi 9%. La cuota justa seria alrededor de 11.00.'
+    },
+    {
+      act: ST.a35 > 0.38,
+      t: 'Arriba 3.5 alto — la cola de Poisson activa',
+      val: pct(ST.a35) + ' de probabilidad de 4+ goles',
+      qPasa: 'La casa calibra este mercado conservadoramente porque la masa no lo apuesta frecuentemente. Hay asimetria de informacion.',
+      siArriba: 'Si hay 4+ goles — Arriba 3.5 gana. Ambos marcan gana con alta probabilidad. El partido se abrio mas de lo esperado.',
+      siAbajo: 'Si hay 2-3 goles — Arriba 2.5 gana pero Arriba 3.5 pierde.',
+      consejo: 'Con ' + pct(ST.a35) + ' en Arriba 3.5 la cuota justa es ' + (1/ST.a35).toFixed(2) + '. Si la casa paga mas de eso hay valor real.'
+    },
+    {
+      act: Math.abs(ST.slA - ST.slB) > 0.12,
+      t: 'Asimetria — un equipo marca mucho mas que el otro',
+      val: 'Solo ' + nA + ': ' + pct(ST.slA) + ' · Solo ' + nB + ': ' + pct(ST.slB),
+      qPasa: 'Hay diferencia clara en cuantas veces marca solo un equipo. Un equipo genera mucho y el otro casi no convierte.',
+      siArriba: 'Si el equipo dominante marca sin que el rival convierta — marcador tipo 2-0 o 3-0.',
+      siAbajo: 'Si hay intercambio de goles — Ambos marcan gana y el solo marca pierde valor.',
+      consejo: 'El equipo con mayor solo-marca (' + pct(Math.max(ST.slA, ST.slB)) + ') tiene valor en handicap -0.5 porque domina sin que el rival convierta frecuentemente.'
+    },
+    {
+      act: ST.amb > 0.60 && ST.a25 < 0.55,
+      t: 'Contradiccion interna — ambos marcan pero pocos goles totales',
+      val: pct(ST.amb) + ' ambos marcan · ' + pct(ST.a25) + ' arriba 2.5',
+      qPasa: 'Esta es la contradiccion mas honesta del modelo: dice que ambos marcan en 60%+ pero Arriba 2.5 es menos del 55%. Implica que el 1-1 concentra casi toda la probabilidad.',
+      siArriba: 'Si hay mas goles — Ambos marcan y Arriba 2.5 ganan.',
+      siAbajo: 'Si hay exactamente 2 goles (1-1) — Ambos marcan puede ganar pero Arriba 2.5 pierde.',
+      consejo: 'Esta tension activa significa que el 1-1 es el marcador mas valioso. La casa rara vez lo paga bien cuando esta tension esta presente.'
+    },
+  ];
+
+  let h2 = '';
+  const tensActivas   = tens.filter(t => t.act);
+  const tensInactivas = tens.filter(t => !t.act);
+
+  if (tensActivas.length === 0) {
+    h2 = '<div class="dis do">Sin tensiones estadisticas activas. El modelo no detecta contradicciones internas. Las probabilidades son consistentes entre si.</div>';
+  } else {
+    tensActivas.forEach(t => {
+      h2 += '<div style="background:var(--surf2);border:1px solid #3a2800;border-radius:10px;padding:12px;margin-bottom:8px">' +
+        '<div style="color:var(--amber);font-weight:600;font-size:.8rem;margin-bottom:5px">Tension activa: ' + t.t + '</div>' +
+        '<div style="font-size:.72rem;color:var(--muted);margin-bottom:7px">' + t.val + '</div>' +
+        '<div style="font-size:.78rem;color:var(--text);margin-bottom:5px"><strong>Que pasa:</strong> ' + t.qPasa + '</div>' +
+        '<div style="font-size:.75rem;color:var(--green);margin-bottom:3px">Si se resuelve hacia arriba: ' + t.siArriba + '</div>' +
+        '<div style="font-size:.75rem;color:var(--red);margin-bottom:5px">Si se resuelve hacia abajo: ' + t.siAbajo + '</div>' +
+        '<div style="font-size:.75rem;color:var(--blue);font-style:italic">Senal: ' + t.consejo + '</div>' +
+        '</div>';
+    });
+    if (tensInactivas.length > 0) {
+      h2 += '<div style="font-size:.68rem;color:var(--muted);margin-top:5px">Sin tension: ' + tensInactivas.map(t => t.t.split(' — ')[0]).join(' · ') + '</div>';
+    }
+  }
+  document.getElementById('msilo2').innerHTML = h2;
+
+  // Señal única cruzada
+  const s1_ = 1/cA + 1/cX + 1/cB, s25_ = 1/cA25 + 1/cD25;
+  const implVA2 = (1/cA)/s1_, implVB2 = (1/cB)/s1_;
+  const diffVA = vA - implVA2, diffVB2 = vB - implVB2, diffA25_ = a25 - (1/cA25)/s25_;
+  const tensionActiva = tensActivas.length > 0 ? tensActivas[0] : null;
+
+  let senalTxt = '', senalCls = 'di';
+  if      (tensionActiva && (implVA2 - vA) > 0.08 && diffVB2 > 0.08) {
+    senalTxt = 'La tension estadistica mas fuerte (' + tensionActiva.t.split(' — ')[0] + ') coincide con distorsion de masa: la casa sobrevalora al local (' + pct(implVA2 - vA) + ') y subestima al visitante (' + pct(diffVB2) + '). Son la misma senal desde dos angulos distintos. El handicap +1.5 al visitante combina ambas senales.';
+    senalCls = 'dw';
+  } else if (tensionActiva && diffVB2 > 0.08) {
+    senalTxt = 'El visitante esta subvalorado (' + pct(diffVB2) + ') y hay una tension activa de tipo: ' + tensionActiva.t.split(' — ')[0] + '. Dos senales independientes apuntan en la misma direccion.';
+    senalCls = 'dw';
+  } else if (tensionActiva && diffA25_ > 0.08) {
+    senalTxt = 'La tension de goles coincide con que la casa subestima Arriba 2.5 (' + pct(diffA25_) + '). El modelo ve partido mas abierto que la cuota. La senal mas clara esta en los goles, no en el resultado.';
+    senalCls = 'dw';
+  } else if (tensionActiva) {
+    senalTxt = 'Hay una tension activa (' + tensionActiva.t.split(' — ')[0] + ') pero no coincide con distorsion de cuota significativa. La tension es interna del modelo — no tiene confirmacion en el mercado. Senal debil.';
+    senalCls = 'di';
+  } else if (diffVB2 > 0.10) {
+    senalTxt = 'Sin tension estadistica fuerte pero el visitante esta subvalorado por ' + pct(diffVB2) + '. Senal de mercado sin confirmacion estadistica interna. Peso menor.';
+    senalCls = 'di';
+  } else {
+    senalTxt = 'Sin tension activa y sin distorsion de cuota significativa. El modelo y la casa coinciden. No hay senal clara en este partido.';
+    senalCls = 'do';
+  }
+  document.getElementById('msenal').innerHTML = '<div class="dis ' + senalCls + '"><strong>Senal cruzada:</strong> ' + senalTxt + '</div>';
+}
+
+// ============================================================
+// Simulación
+// ============================================================
+function initP() {
+  players = []; effects = [];
+  const fA = [[.08,.5],[.2,.2],[.2,.5],[.2,.8],[.35,.2],[.35,.5],[.35,.8],[.5,.3],[.5,.5],[.5,.7],[.7,.5]];
+  const fB = [[.92,.5],[.8,.2],[.8,.5],[.8,.8],[.65,.2],[.65,.5],[.65,.8],[.5,.3],[.5,.5],[.5,.7],[.3,.5]];
+  fA.forEach((p, i) => players.push({ x:p[0]*FW, y:p[1]*FH, tx:p[0]*FW, ty:p[1]*FH, bx:p[0], by:p[1], t:0, r:i===10?7:4.5 }));
+  fB.forEach((p, i) => players.push({ x:p[0]*FW, y:p[1]*FH, tx:p[0]*FW, ty:p[1]*FH, bx:p[0], by:p[1], t:1, r:i===10?7:4.5 }));
+}
+
+function drawP(ctx) {
+  ctx.fillStyle = '#1e4a10'; ctx.fillRect(0, 0, FW, FH);
+  for (let i = 0; i < 10; i++) { ctx.fillStyle = i%2===0?'#1e4a10':'#235213'; ctx.fillRect(i*FW/10, 0, FW/10, FH); }
+  ctx.strokeStyle = 'rgba(255,255,255,.65)'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(22, 14, FW-44, FH-28);
+  ctx.beginPath(); ctx.moveTo(MX, 14); ctx.lineTo(MX, FH-14); ctx.stroke();
+  ctx.beginPath(); ctx.arc(MX, MY, 32, 0, Math.PI*2); ctx.stroke();
+  ctx.strokeRect(22, MY-38, 50, 76); ctx.strokeRect(22, MY-19, 21, 38);
+  ctx.strokeRect(FW-72, MY-38, 50, 76); ctx.strokeRect(FW-43, MY-19, 21, 38);
+}
+
+function drawPlayers(ctx) {
+  players.forEach(p => {
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fillStyle = p.t===0 ? '#c8f135' : '#ff4444'; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = .5; ctx.stroke();
+  });
+}
+
+function drawFX(ctx) {
+  effects.forEach(e => {
+    ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(${e.rgb},${e.a.toFixed(2)})`; ctx.fill();
+    e.r += 1.8; e.a -= .025;
+  });
+  effects = effects.filter(e => e.a > 0);
+}
+
+function moveP() {
+  players.forEach(p => {
+    const mf = p.t === 0 ? mA : -mB;
+    const push = mf * 0.06;
+    p.tx = (p.bx + push) * FW + (Math.random()-.5) * 22;
+    p.ty = p.by * FH + (Math.random()-.5) * 22;
+    p.tx = Math.max(8, Math.min(FW-8, p.tx));
+    p.ty = Math.max(8, Math.min(FH-8, p.ty));
+    p.x += (p.tx - p.x) * .06;
+    p.y += (p.ty - p.y) * .06;
+  });
+}
+
+function updMom(team, isGoal) {
+  const b = isGoal ? MGOL : MOCC;
+  if (team === 0) { mA = Math.min(MMAX, mA+b); mB = Math.max(-MMAX, mB-b*.5); }
+  else            { mB = Math.min(MMAX, mB+b); mA = Math.max(-MMAX, mA-b*.5); }
+  mA *= (1-MDEC); mB *= (1-MDEC);
+  const pA = 50 + Math.round(mA/MMAX*25);
+  document.getElementById('mA').style.width  = pA + '%';
+  document.getElementById('mB').style.width  = (100-pA) + '%';
+  document.getElementById('mAv').textContent = pA + '%';
+  document.getElementById('mBv').textContent = (100-pA) + '%';
+}
+
+function addLog(msg) {
+  logs.unshift(msg); if (logs.length > 25) logs.pop();
+  document.getElementById('sLOG').innerHTML = logs.map(l => `<div>${l}</div>`).join('');
+}
+
+function updSUI() {
+  document.getElementById('sSC').textContent = sA + ' - ' + sB;
+  document.getElementById('sMIN').textContent = min > 0 ? min + "'" : '—';
+  document.getElementById('sGA').textContent = sA; document.getElementById('sGB').textContent = sB;
+  document.getElementById('sOA').textContent = ocA; document.getElementById('sOB').textContent = ocB;
+}
+
+function simular() {
+  if (running) { cancelAnimationFrame(raf); running = false; }
+  resetSim(false);
+  const lA = ST.lA || 1.85, lB = ST.lB || 1.59;
+  const evs = [];
+  for (let m = 1; m <= 90; m++) {
+    if (Math.random() < lA/90*1.5) evs.push({ m, t:0, g: Math.random() < 1/1.5 });
+    if (Math.random() < lB/90*1.5) evs.push({ m, t:1, g: Math.random() < 1/1.5 });
+  }
+  evs.sort((a, b) => a.m - b.m);
+  let idx = 0, last = 0;
+  initP(); running = true;
+  function loop(ts) {
+    if (!running) return;
+    const cv = document.getElementById('pitch'); if (!cv) return;
+    const ctx = cv.getContext('2d');
+    drawP(ctx); mA *= (1-MDEC); mB *= (1-MDEC); moveP(); drawFX(ctx); drawPlayers(ctx);
+    if (ts - last > 350 && idx < evs.length) {
+      const ev = evs[idx++]; min = ev.m;
+      if (ev.t === 0) ocA++; else ocB++;
+      updMom(ev.t, ev.g);
+      const ex = ev.t===0 ? FW*.8 : FW*.2, ey = MY + (Math.random()-.5) * FH * .5;
+      if (ev.g) {
+        if (ev.t === 0) sA++; else sB++;
+        effects.push({ x:ex, y:ey, r:5, a:1, rgb:'255,220,50' });
+        addLog(`${ev.m}' ⚽ GOL ${ev.t===0 ? ST.nA : ST.nB}`);
+      } else {
+        effects.push({ x:ex, y:ey, r:3, a:.65, rgb: ev.t===0?'200,241,53':'255,68,68' });
+      }
+      updSUI(); last = ts;
+    }
+    if (idx >= evs.length) { min = 90; document.getElementById('sMIN').textContent = 'Final'; running = false; return; }
+    raf = requestAnimationFrame(loop);
+  }
+  raf = requestAnimationFrame(loop);
+}
+
+function resetSim(draw = true) {
+  if (raf) cancelAnimationFrame(raf); running = false;
+  sA=0; sB=0; ocA=0; ocB=0; min=0; logs=[]; mA=0; mB=0;
+  document.getElementById('sSC').textContent = '0 - 0';
+  document.getElementById('sMIN').textContent = 'Presioná Simular';
+  document.getElementById('sRES').style.display = 'none';
+  document.getElementById('sLOG').innerHTML = 'El registro aparecerá aquí';
+  ['mA','mB'].forEach(id => document.getElementById(id).style.width = '50%');
+  ['mAv','mBv'].forEach((id, i) => document.getElementById(id).textContent = '50%');
+  updSUI();
+  if (draw) {
+    initP();
+    const cv = document.getElementById('pitch');
+    if (cv) { const ctx = cv.getContext('2d'); drawP(ctx); drawPlayers(ctx); }
+  }
+}
+
+function sim1000() {
+  const lA = ST.lA || 1.85, lB = ST.lB || 1.59;
+  const r = { vA:0, e:0, vB:0 }; const g = {};
+  for (let n = 0; n < 1000; n++) {
+    let a = 0, b = 0;
+    for (let m = 0; m < 90; m++) { if (Math.random() < lA/90) a++; if (Math.random() < lB/90) b++; }
+    if      (a > b) r.vA++;
+    else if (b > a) r.vB++;
+    else            r.e++;
+    const k = `${a}-${b}`; g[k] = (g[k]||0) + 1;
+  }
+  const top = Object.entries(g).sort((a, b) => b[1]-a[1]).slice(0, 5);
+  const d = document.getElementById('sRES'); d.style.display = 'block';
+  d.innerHTML = `<div class="dis di">1000 simulaciones Poisson: Gana ${ST.nA} ${(r.vA/10).toFixed(1)}% · Empate ${(r.e/10).toFixed(1)}% · Gana ${ST.nB} ${(r.vB/10).toFixed(1)}%<br>Marcadores más frecuentes: ${top.map(([k,v])=>`${k}(${(v/10).toFixed(1)}%)`).join(' · ')}</div>`;
+}
+
+// ============================================================
+// Init
+// ============================================================
+window.addEventListener('load', () => {
+  syncNames();
+  calcular();
+  initP();
+  const cv = document.getElementById('pitch');
+  if (cv) { const ctx = cv.getContext('2d'); drawP(ctx); drawPlayers(ctx); }
+});
+</script>
+</body>
+</html>
