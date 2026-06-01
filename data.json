@@ -1,8 +1,50 @@
 {
   "meta": {
-    "lastUpdated": "2026-05-31T08:31:11.612Z",
+    "lastUpdated": "2026-06-01T00:24:11.087Z",
     "totalTeams": 0,
-    "leagues": []
+    "leagues": [
+      {
+        "name": "Premier League",
+        "country": "England",
+        "teams": 0
+      },
+      {
+        "name": "La Liga",
+        "country": "Spain",
+        "teams": 0
+      },
+      {
+        "name": "Serie A",
+        "country": "Italy",
+        "teams": 0
+      },
+      {
+        "name": "Bundesliga",
+        "country": "Germany",
+        "teams": 0
+      },
+      {
+        "name": "Ligue 1",
+        "country": "France",
+        "teams": 0
+      },
+      {
+        "name": "WC Qualif CONMEBOL",
+        "country": "CONMEBOL",
+        "teams": 0
+      },
+      {
+        "name": "WC Qualif UEFA",
+        "country": "UEFA",
+        "teams": 0
+      },
+      {
+        "name": "Nations League",
+        "country": "UEFA",
+        "teams": 0
+      }
+    ],
+    "source": "FBref"
   },
   "teams": {}
 }
