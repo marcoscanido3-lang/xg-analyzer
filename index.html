@@ -488,19 +488,74 @@ function handleAcClick(event) {
 function closeDropdown(side) { document.getElementById('ac-'+side).classList.remove('open'); }
 
 function selectTeam(side, teamName) {
-  // USA xG local o visitante segun posicion
   const team = Object.values(DB).find(t => t.name === teamName);
   if (!team) return;
   document.getElementById('n'+side).value = team.name;
+
   if (side==='A') {
-    // Local: xG promedio como local
     document.getElementById('xgLA').value  = team.xgHomeFor     !== undefined ? team.xgHomeFor     : team.xgFor;
     document.getElementById('xgLAc').value = team.xgHomeAgainst !== undefined ? team.xgHomeAgainst : team.xgAgainst;
   } else {
-    // Visitante: xG promedio como visitante
     document.getElementById('xgLB').value  = team.xgAwayFor     !== undefined ? team.xgAwayFor     : team.xgFor;
     document.getElementById('xgLBc').value = team.xgAwayAgainst !== undefined ? team.xgAwayAgainst : team.xgAgainst;
   }
+
+  // ── AUTOCOMPLETAR PARTIDOS RECIENTES ──
+  const matchKey = side === 'A' ? 'recentHome' : 'recentAway';
+  const recent   = team[matchKey] || team.recentHome || team.recentAway || [];
+  const ctxKey   = 'recentCups';
+  const cups     = team[ctxKey] || [];
+  const containerId = side === 'A' ? 'ligaA-rows' : 'ligaB-rows';
+  const ctxId       = side === 'A' ? 'ctxA-rows'  : 'ctxB-rows';
+  const avgGFId     = side === 'A' ? 'ligaA-avgGF': 'ligaB-avgGF';
+  const avgGCId     = side === 'A' ? 'ligaA-avgGC': 'ligaB-avgGC';
+  const ctxGFId     = side === 'A' ? 'ctxA-avgGF' : 'ctxB-avgGF';
+  const ctxGCId     = side === 'A' ? 'ctxA-avgGC' : 'ctxB-avgGC';
+
+  // Llenar últimos 10 partidos de liga
+  for (let i = 0; i < 10; i++) {
+    const rivalEl = document.getElementById(`${containerId}-rival-${i}`);
+    const gfEl    = document.getElementById(`${containerId}-gf-${i}`);
+    const gcEl    = document.getElementById(`${containerId}-gc-${i}`);
+    if (!rivalEl || !gfEl || !gcEl) continue;
+    if (i < recent.length) {
+      rivalEl.value = recent[i].opponent || '';
+      gfEl.value    = recent[i].gf !== undefined ? recent[i].gf : '';
+      gcEl.value    = recent[i].gc !== undefined ? recent[i].gc : '';
+    } else {
+      rivalEl.value = '';
+      gfEl.value    = '';
+      gcEl.value    = '';
+    }
+  }
+  recalcAvg(containerId, avgGFId, avgGCId);
+
+  // Llenar contexto específico (copas/selecciones)
+  for (let i = 0; i < 3; i++) {
+    const rivalEl = document.getElementById(`${ctxId}-rival-${i}`);
+    const gfEl    = document.getElementById(`${ctxId}-gf-${i}`);
+    const gcEl    = document.getElementById(`${ctxId}-gc-${i}`);
+    if (!rivalEl || !gfEl || !gcEl) continue;
+    if (i < cups.length) {
+      rivalEl.value = cups[i].opponent || '';
+      gfEl.value    = cups[i].gf !== undefined ? cups[i].gf : '';
+      gcEl.value    = cups[i].gc !== undefined ? cups[i].gc : '';
+    } else {
+      rivalEl.value = '';
+      gfEl.value    = '';
+      gcEl.value    = '';
+    }
+  }
+  recalcAvg(ctxId, ctxGFId, ctxGCId);
+
+  // Notificación visual
+  const status = document.getElementById('data-status');
+  if (status && recent.length > 0) {
+    const orig = status.textContent;
+    status.textContent = `✅ ${team.name} — ${recent.length} partidos cargados automáticamente`;
+    setTimeout(() => { status.textContent = orig; }, 3000);
+  }
+
   selectedTeam[side] = team;
   closeDropdown(side);
   syncNames(); calcular();
