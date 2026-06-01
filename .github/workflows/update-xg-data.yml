@@ -1,16 +1,18 @@
-name: Actualizar datos XG diario
+name: Actualizar datos XG (FBref)
 
 on:
   schedule:
-    - cron: '0 6 * * *'
-  workflow_dispatch:
+    - cron: '0 6 * * *'   # Cada día a las 6am UTC
+  workflow_dispatch:        # Manual desde GitHub Actions
 
 jobs:
-  fetch-xg:
+  fetch-data:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
-      - name: Checkout repositorio
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -21,15 +23,21 @@ jobs:
       - name: Instalar dependencias
         run: npm install node-fetch@2
 
-      - name: Correr script de fetch
-        env:
-          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+      - name: Ejecutar scraper FBref
         run: node fetch-xg.js
+        timeout-minutes: 30
 
-      - name: Commit y push del data.json actualizado
+      - name: Verificar data.json
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action Bot"
+          echo "Tamaño data.json:"
+          wc -c data.json
+          echo "Preview:"
+          node -e "const d=require('./data.json'); console.log('Equipos:', d.meta.totalTeams, '| Ligas:', d.meta.leagues.length)"
+
+      - name: Commit y push data.json
+        run: |
+          git config user.name  "actions-user"
+          git config user.email "actions@github.com"
           git add data.json
-          git diff --staged --quiet || git commit -m "📊 Actualizar datos XG - $(date +'%Y-%m-%d')"
+          git diff --staged --quiet || git commit -m "🔄 Actualizar datos XG - $(date '+%Y-%m-%d')"
           git push
